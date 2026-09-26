@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>CARVE LINE — Snowboard Downhill</title>
+<!-- PWA: installierbar + offline (alle Pfade relativ, damit jeder Versionsordner eine eigene App ist) -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b111b">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Carve Line">
+<style>
+  :root{
+    --ink:#0d1420; --ink2:#1b2638; --paper:#f4f7fb; --accent:#ff4d2e; --accent2:#19c3ff;
+    --gold:#ffc53d; --muted:#8a97ab;
+    --f: "Bahnschrift","DIN Alternate","Roboto Condensed","Arial Narrow","Helvetica Neue",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0b111b;color:var(--paper);font-family:var(--f)}
+  canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+  #ui{position:fixed;inset:0;pointer-events:none;user-select:none}
+  .screen{position:absolute;inset:0;display:none;pointer-events:auto}
+  .screen.on{display:flex}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ---------- Title ---------- */
+  #title{flex-direction:column;justify-content:flex-end;padding:0 7vw 9vh;background:linear-gradient(180deg,rgba(8,12,20,0) 40%,rgba(8,12,20,.75) 100%)}
+  #title .kicker{font-size:14px;letter-spacing:.42em;text-transform:uppercase;color:var(--accent2);font-weight:700}
+  #title h1{margin:.1em 0 .15em;font-size:clamp(56px,10vw,138px);line-height:.86;font-style:italic;font-weight:800;letter-spacing:-.02em;text-transform:uppercase}
+  #title h1 span{color:var(--accent)}
+  #title .sub{max-width:560px;color:#c9d3e2;font-size:17px;line-height:1.45}
+  .row{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:28px}
+  button.btn{pointer-events:auto;font-family:var(--f);font-size:18px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+    padding:16px 34px;border:0;background:var(--accent);color:#fff;cursor:pointer;clip-path:polygon(10px 0,100% 0,calc(100% - 10px) 100%,0 100%);transition:transform .12s,filter .12s}
+  button.btn:hover{transform:translateY(-2px);filter:brightness(1.1)}
+  button.btn.ghost{background:rgba(255,255,255,.1);color:var(--paper);backdrop-filter:blur(6px)}
+  .keys{display:grid;grid-template-columns:max-content max-content;justify-content:start;gap:6px 18px;margin-top:26px;font-size:13px;color:#b8c4d6;letter-spacing:.04em}
+  .keys b{color:#fff;background:rgba(255,255,255,.12);padding:2px 8px;border-radius:3px;font-weight:700;margin-right:4px}
+  .tsel{display:flex;align-items:center;gap:14px;margin-top:18px;max-width:520px} .tsel .seg{flex:1}
+  .best{margin-top:18px;font-size:14px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+
+  /* ---------- HUD ---------- */
+  #hud{pointer-events:none}
+  .panel{position:absolute;background:rgba(10,16,28,.72);backdrop-filter:blur(8px);border-left:4px solid var(--accent)}
+  #hTime{top:22px;left:22px;padding:10px 18px 10px 14px;min-width:230px}
+  .lbl{font-size:11px;letter-spacing:.3em;color:var(--muted);text-transform:uppercase;font-weight:700}
+  .big{font-size:38px;font-weight:800;font-style:italic;line-height:1}
+  #hPen{color:var(--accent);font-size:15px;font-weight:800;margin-left:8px}
+  #hProg{margin-top:8px;height:4px;background:rgba(255,255,255,.14);position:relative}
+  #hProgBar{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent2)}
+  #hDist{font-size:12px;color:#c9d3e2;margin-top:6px;letter-spacing:.1em}
+  #hExtra{font-size:12px;color:var(--gold);margin-top:3px;letter-spacing:.1em;font-weight:700}
+  #hScore{top:22px;right:22px;padding:10px 16px;text-align:right;border-left:0;border-right:4px solid var(--gold);min-width:190px}
+  #hCombo{font-size:22px;font-weight:800;color:var(--gold);font-style:italic}
+  #hSpeed{right:22px;bottom:22px;padding:12px 20px 12px 16px;border-left-color:var(--accent2);min-width:210px}
+  #hSpeed .big{font-size:64px}
+  #hSpeed .unit{font-size:15px;font-weight:700;color:var(--muted);margin-left:6px;letter-spacing:.14em}
+  #hGauge{height:5px;background:rgba(255,255,255,.12);margin-top:6px}
+  #hGaugeBar{height:100%;width:0;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+  #hCam{left:22px;bottom:22px;padding:8px 14px;font-size:12px;letter-spacing:.24em;color:#c9d3e2;border-left-color:var(--muted)}
+  #pops{position:absolute;left:50%;top:26%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px}
+  .pop{font-size:30px;font-weight:800;font-style:italic;text-transform:uppercase;letter-spacing:.04em;color:#fff;
+    text-shadow:0 2px 14px rgba(0,0,0,.45);opacity:0;transform:translateY(12px) scale(.9);transition:opacity .18s,transform .18s;white-space:nowrap}
+  .pop.show{opacity:1;transform:none}
+  .pop small{display:block;text-align:center;font-size:17px;color:var(--gold);letter-spacing:.14em}
+  .pop.bad{color:var(--accent)}
+  #count{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);font-size:140px;font-weight:900;font-style:italic;opacity:0;text-shadow:0 6px 30px rgba(0,0,0,.4)}
+  #toast{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);padding:8px 16px;background:rgba(10,16,28,.8);font-size:13px;letter-spacing:.18em;text-transform:uppercase;opacity:0;transition:opacity .3s}
+  #trick{position:absolute;left:50%;bottom:15%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;opacity:0;transition:opacity .15s;pointer-events:none}
+  #trick.on{opacity:1} #trTxt{margin-top:4px;font-size:22px;font-weight:900;font-style:italic;letter-spacing:.08em;text-transform:uppercase;text-shadow:0 2px 10px rgba(0,0,0,.5)}
+  #trKey{font-size:12px;letter-spacing:.14em;color:#dfe6f1;text-shadow:0 1px 6px rgba(0,0,0,.6);min-height:14px}
+  #trick.ok #trTxt{color:#2ecc71} #trick.warn #trTxt{color:var(--gold)} #trick.bad #trTxt{color:var(--accent)}
+  #trick.bad #trNow rect,#trick.bad #trNow circle{fill:var(--accent)} #trick.go #trTxt{animation:trPulse .35s ease-in-out infinite alternate}
+  @keyframes trPulse{from{transform:scale(1)}to{transform:scale(1.12)}}
+  .tag{position:absolute;left:0;top:0;display:none;padding:2px 8px 2px 6px;border-radius:10px;background:rgba(10,16,28,.55);color:#fff;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;pointer-events:none}
+  .tag i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:0}
+  #gateMark{position:absolute;left:0;top:0;display:none;transform:translate(-50%,-100%);text-align:center;font-weight:900;font-style:italic;text-shadow:0 2px 10px rgba(0,0,0,.5);pointer-events:none}
+  #gateMark .ar{font-size:52px;line-height:1} #gateMark .dt{font-size:16px;letter-spacing:.12em;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+  #gateMark.red{color:#ff4b5c} #gateMark.blue{color:#4f8dff}
+  #slowmo{position:absolute;inset:0;box-shadow:inset 0 0 160px rgba(25,195,255,.35);opacity:0;transition:opacity .15s}
+
+  /* ---------- Menus ---------- */
+  .modal{align-items:center;justify-content:center;background:rgba(6,10,18,.62);backdrop-filter:blur(5px)}
+  .card{background:rgba(14,21,34,.94);padding:30px 34px;min-width:360px;max-width:92vw;border-top:5px solid var(--accent)}
+  .card h2{margin:0 0 18px;font-size:40px;font-style:italic;font-weight:800;text-transform:uppercase;letter-spacing:.02em}
+  .opt{display:grid;grid-template-columns:140px 1fr;align-items:center;gap:10px 18px;margin:12px 0}
+  .opt label{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  .seg{display:flex;gap:4px}
+  .seg button{pointer-events:auto;flex:1;font-family:var(--f);font-weight:700;letter-spacing:.1em;font-size:13px;text-transform:uppercase;padding:9px 10px;background:rgba(255,255,255,.08);color:#dfe6f1;border:0;cursor:pointer}
+  .seg button.sel{background:var(--accent2);color:#04121c}
+  .sw{display:flex;gap:7px;flex-wrap:wrap}
+  .sw button{pointer-events:auto;width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.25);cursor:pointer;padding:0}
+  .sw button.sel{border-color:#fff;box-shadow:0 0 0 2px var(--accent2)}
+  .card{max-height:92vh;overflow-y:auto}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .stats{display:grid;grid-template-columns:1fr auto;gap:8px 30px;font-size:17px;margin:6px 0 10px}
+  .stats div:nth-child(odd){color:var(--muted);letter-spacing:.14em;text-transform:uppercase;font-size:13px;align-self:center}
+  .stats div:nth-child(even){text-align:right;font-weight:800}
+  .rec{color:var(--gold);font-weight:800;letter-spacing:.2em;text-transform:uppercase;font-size:14px;margin-bottom:6px;min-height:18px}
+  /* ---------- Touch-Steuerung (nur body.touch) ---------- */
+  #touch{display:none;position:absolute;inset:0;pointer-events:none}
+  body.touch #touch{display:block}
+  body.touch, body.touch canvas#c{touch-action:none;-webkit-user-select:none;-webkit-touch-callout:none}
+  #tPad{position:absolute;left:calc(24px + env(safe-area-inset-left));bottom:calc(24px + env(safe-area-inset-bottom));width:172px;height:172px;border-radius:50%;
+    background:radial-gradient(circle,rgba(10,16,28,.18),rgba(10,16,28,.45));border:2px solid rgba(255,255,255,.2);backdrop-filter:blur(4px);pointer-events:auto;touch-action:none}
+  #tPad .ar{position:absolute;color:rgba(255,255,255,.5);font-size:16px;line-height:1;transition:color .08s}
+  #tPad .ar.on{color:var(--accent2)}
+  #tPad .u{left:50%;top:12px;transform:translateX(-50%)} #tPad .d{left:50%;bottom:12px;transform:translateX(-50%)}
+  #tPad .l{left:12px;top:50%;transform:translateY(-50%)} #tPad .r{right:12px;top:50%;transform:translateY(-50%)}
+  #tPad .cap{position:absolute;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:.22em;color:rgba(255,255,255,.45);text-transform:uppercase;font-weight:700}
+  #tPad .cu{top:32px} #tPad .cd{bottom:32px}
+  #tKnob{position:absolute;left:50%;top:50%;width:66px;height:66px;margin:-33px 0 0 -33px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.55);box-shadow:0 4px 18px rgba(0,0,0,.25)}
+  .tbtn{position:absolute;pointer-events:auto;touch-action:none;border-radius:50%;border:2px solid rgba(255,255,255,.25);background:rgba(10,16,28,.42);color:#fff;
+    font-family:var(--f);font-weight:800;letter-spacing:.12em;text-transform:uppercase;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;transition:transform .08s,background .08s}
+  #tJump{right:calc(28px + env(safe-area-inset-right));bottom:calc(36px + env(safe-area-inset-bottom));width:116px;height:116px;font-size:14px;background:rgba(255,77,46,.5)}
+  #tJump.on{background:var(--accent);transform:scale(.94)}
+  #tGrab{right:calc(40px + env(safe-area-inset-right));bottom:calc(166px + env(safe-area-inset-bottom));width:74px;height:74px;font-size:12px;background:rgba(255,197,61,.45)}
+  #tGrab.on{background:var(--gold);color:#1b1300;transform:scale(.94)}
+  #tCam,#tPause{width:54px;height:54px;font-size:11px;right:calc(160px + env(safe-area-inset-right))}
+  #tCam{bottom:calc(40px + env(safe-area-inset-bottom))} #tPause{bottom:calc(106px + env(safe-area-inset-bottom));font-size:15px;letter-spacing:0}
+  .tbtn.tap{transform:scale(.9);background:rgba(25,195,255,.5)}
+  body.touch #hCam{display:none}
+  body.touch #hSpeed{bottom:auto;top:calc(16px + env(safe-area-inset-top));right:50%;transform:translateX(50%);min-width:0;padding:6px 16px 8px 12px}
+  body.touch #hSpeed .big{font-size:40px}
+  body.touch .keys{display:none}
+  .thint{display:none;margin-top:22px;font-size:13px;line-height:1.6;color:#b8c4d6;letter-spacing:.04em;max-width:520px}
+  .thint b{color:#fff}
+  body.touch .thint{display:block}
+  #rotate{display:none;position:fixed;inset:0;z-index:8;background:rgba(8,12,20,.94);color:#fff;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:16px;letter-spacing:.2em;text-transform:uppercase;pointer-events:auto}
+  #rotate div{font-size:64px;letter-spacing:0}
+  @media (orientation: portrait){ body.touch #rotate{display:flex} }
+  @media (max-width:760px), (max-height:500px){
+    #hTime{top:12px;left:12px;min-width:0;padding:6px 12px 6px 10px} #hScore{top:12px;right:12px;min-width:0;padding:6px 12px}
+    #hTime .big,#hScore .big{font-size:26px} #hDist{display:none} #hCombo{font-size:16px}
+    body.touch #hSpeed{top:12px} body.touch #hSpeed .big{font-size:30px}
+    #title{padding:0 6vw 5vh} #title .sub{font-size:14px} .row{margin-top:16px} button.btn{padding:12px 24px;font-size:15px}
+    #tPad{width:150px;height:150px} #tKnob{width:58px;height:58px;margin:-29px 0 0 -29px} #tJump{width:100px;height:100px}
+    #tCam,#tPause{right:calc(140px + env(safe-area-inset-right))} #tGrab{bottom:calc(146px + env(safe-area-inset-bottom));width:64px;height:64px}
+    .card{padding:20px 22px;min-width:0} .card h2{font-size:30px} .opt{grid-template-columns:110px 1fr}
+  }
+  /* ---------- Niedrige Bildschirme (Handy quer mit Browserleisten): Titel und Menü zweispaltig ---------- */
+  .seg button{background:rgba(10,16,28,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+  .seg button.sel{box-shadow:none}
+  @media (max-height:520px){
+    #title.on{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);grid-auto-rows:min-content;align-content:center;column-gap:5vw;overflow-y:auto;
+      padding:10px calc(4vw + env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) calc(4vw + env(safe-area-inset-left));
+      background:linear-gradient(90deg,rgba(8,12,20,.85) 0%,rgba(8,12,20,.6) 55%,rgba(8,12,20,.3) 100%)}
+    #title > *{grid-column:1}
+    #title .keys, #title .thint{grid-column:2;grid-row:1 / span 8;align-self:center;margin-top:0}
+    #title .kicker{font-size:10px;letter-spacing:.3em}
+    #title h1{font-size:clamp(28px,11vh,52px);margin:.05em 0 0} #title h1 br{display:none} #title h1 span{margin-left:.25em}
+    #title .sub{display:none}
+    .row{margin-top:10px;gap:10px} button.btn{padding:9px 18px;font-size:13px}
+    .tsel{margin-top:10px;gap:10px} .tsel .seg button{padding:6px;font-size:10px;letter-spacing:.06em}
+    .best{margin-top:8px;font-size:10px;letter-spacing:.14em}
+    .thint{font-size:11px;line-height:1.45;max-width:none;color:#e3e9f3;text-shadow:0 1px 4px rgba(0,0,0,.6)} .keys{font-size:11px;gap:4px 10px}
+    #pause .card{display:grid;grid-template-columns:1fr 1fr;column-gap:26px;align-content:start;width:min(96vw,900px);max-height:94vh;padding:14px 18px}
+    #pause .card h2, #pause .card .row{grid-column:1 / -1} #pause .card h2{font-size:24px;margin:0 0 6px}
+    .opt{margin:5px 0;grid-template-columns:86px 1fr;gap:6px 10px} .opt label{font-size:10px;letter-spacing:.14em}
+    .seg button{padding:6px;font-size:11px} .sw button{width:22px;height:22px} .card .row{margin-top:10px}
+    #finish .card{padding:14px 20px;max-height:94vh} #finish .card h2{font-size:24px;margin:0 0 6px} .stats{font-size:14px;gap:3px 24px}
+    .card .row{position:sticky;bottom:-14px;margin-bottom:-14px;padding:8px 0 14px;background:#0e1522;z-index:2;box-shadow:0 -10px 14px #0e1522}   /* Knöpfe immer sichtbar, Inhalt scrollt */
+  }
+  #err{position:fixed;left:0;right:0;top:0;padding:14px;background:#a01f12;color:#fff;font:14px monospace;display:none;white-space:pre-wrap;z-index:9;pointer-events:auto;cursor:pointer}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="err"></div>
+<div id="ui">
+  <!-- Title -->
+  <section id="title" class="screen on">
+    <div class="kicker">Alpine Downhill · Live</div>
+    <h1>Carve<br><span>Line</span></h1>
+    <div class="sub">Schnell, sauber, ohne Kontakt ins Tal. Carve die Kante, nutze Kicker und überhole die Skifahrer so knapp du dich traust.</div>
+    <div class="row">
+      <button class="btn" id="bStart">Start</button>
+      <button class="btn ghost" id="bTitleOpts">Optionen</button>
+      <button class="btn ghost" id="bInstall" style="display:none">Installieren</button>
+    </div>
+    <div class="tsel"><span class="lbl">Strecke</span><div class="seg" id="optTrack"></div></div>
+    <div class="keys">
+      <div><b>A</b><b>D</b> / <b>←</b><b>→</b></div><div>Kante / Lenken (Toeside rechts, Heelside links)</div>
+      <div><b>W</b></div><div>Hocke (Tuck)</div>
+      <div><b>S</b></div><div>Bremsen / Querstellen</div>
+      <div><b>Leertaste</b></div><div>Halten = Laden, Loslassen = Ollie · in der Luft lenken = Spin</div>
+      <div><b>E</b> / <b>Shift</b></div><div>Grab (in der Luft) · <b>W</b>/<b>S</b> in der Luft = Front-/Backflip</div>
+      <div><b>C</b> · <b>P</b>/<b>Esc</b></div><div>Kamera · Pause &nbsp;·&nbsp; Gamepad wird unterstützt</div>
+    </div>
+    <div class="thint"><b>Links:</b> Stick – seitlich lenken/kanten, hoch = Hocke, runter = Bremsen<br><b>Rechts:</b> Sprung halten zum Laden, loslassen = Ollie · in der Luft: lenken = Spin, Stick hoch/runter = Flip, Grab-Taste</div>
+    <div class="best" id="tBest"></div>
+  </section>
+
+  <!-- HUD -->
+  <section id="hud" class="screen">
+    <div class="panel" id="hTime">
+      <div class="lbl">Zeit</div>
+      <div><span class="big num" id="hT">0:00.00</span><span id="hPen" class="num"></span></div>
+      <div id="hProg"><div id="hProgBar"></div></div>
+      <div id="hDist" class="num">0 m</div>
+      <div id="hExtra" class="num"></div>
+    </div>
+    <div class="panel" id="hScore">
+      <div class="lbl">Score</div>
+      <div class="big num" id="hS">0</div>
+      <div id="hCombo" class="num">x1</div>
+    </div>
+    <div class="panel" id="hSpeed">
+      <div class="lbl">Speed</div>
+      <div><span class="big num" id="hV">0</span><span class="unit">KM/H</span></div>
+      <div id="hGauge"><div id="hGaugeBar"></div></div>
+    </div>
+    <div class="panel" id="hCam">CAM · VERFOLGER</div>
+    <div id="pops"></div>
+    <div id="count"></div>
+    <div id="slowmo"></div>
+    <div id="gateMark"><div class="ar">▼</div><div class="dt num"></div></div>
+    <div id="tags"></div>
+    <div id="trick"><svg viewBox="-50 -50 100 100" width="96" height="96">
+      <circle r="38" fill="rgba(10,16,28,.45)" stroke="rgba(255,255,255,.18)" stroke-width="7"/>
+      <path id="trWarn" fill="none" stroke="#ffc53d" stroke-width="7"/><path id="trOk" fill="none" stroke="#2ecc71" stroke-width="7"/>
+      <g id="trPred" opacity=".45"><rect x="-3.5" y="-44" width="7" height="14" rx="3" fill="#fff"/></g>
+      <g id="trNow"><rect x="-4" y="-47" width="8" height="18" rx="3.5" fill="#fff"/><circle r="5" fill="#fff"/></g>
+    </svg><div id="trTxt"></div><div id="trKey"></div></div>
+    <div id="touch">
+      <div id="tPad"><span class="ar u">▲</span><span class="cap cu">Hocke</span><span class="ar d">▼</span><span class="cap cd">Bremse</span><span class="ar l">◀</span><span class="ar r">▶</span><div id="tKnob"></div></div>
+      <div class="tbtn" id="tJump">Sprung</div>
+      <div class="tbtn" id="tGrab">Grab</div>
+      <div class="tbtn" id="tCam">Cam</div>
+      <div class="tbtn" id="tPause">❚❚</div>
+    </div>
+  </section>
+
+  <!-- Pause / Options -->
+  <section id="pause" class="screen modal">
+    <div class="card">
+      <h2 id="pTitle">Pause</h2>
+      <div class="opt"><label>Grafik</label>
+        <div class="seg" id="optPreset"><button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button></div></div>
+      <div class="opt"><label>Auto-Anpassung</label>
+        <div class="seg" id="optAuto"><button data-v="1">An</button><button data-v="0">Aus</button></div></div>
+      <div class="opt"><label>Kamera</label>
+        <div class="seg" id="optCam"><button data-v="0">Verfolger</button><button data-v="1">Action</button><button data-v="2">Helm</button></div></div>
+      <div class="opt"><label>Tageszeit</label>
+        <div class="seg" id="optTod"><button data-v="noon">Mittag</button><button data-v="evening">Abend</button></div></div>
+      <div class="opt"><label>Wetter</label>
+        <div class="seg" id="optWeather"><button data-v="clear">Klar</button><button data-v="snow">Schneefall</button><button data-v="fog">Nebel</button></div></div>
+      <div class="opt"><label>Geist</label>
+        <div class="seg" id="optGhost"><button data-v="1">An</button><button data-v="0">Aus</button></div></div>
+      <div class="opt"><label>Gegner</label>
+        <div class="seg" id="optRivals"><button data-v="1">An</button><button data-v="0">Aus</button></div></div>
+      <div class="opt"><label>Jacke</label><div class="sw" id="colJacket"></div></div>
+      <div class="opt"><label>Hose</label><div class="sw" id="colPants"></div></div>
+      <div class="opt"><label>Helm</label><div class="sw" id="colHelmet"></div></div>
+      <div class="opt"><label>Board</label><div class="sw" id="colDeck"></div></div>
+      <div class="opt"><label>Lautstärke</label><input type="range" id="optVol" min="0" max="1" step="0.01" value="0.8"></div>
+      <div class="opt"><label>Musik</label><input type="range" id="optMus" min="0" max="1" step="0.01" value="0.5"></div>
+      <div class="row">
+        <button class="btn" id="bResume">Weiter</button>
+        <button class="btn ghost" id="bRestart">Neustart</button>
+        <button class="btn ghost" id="bMenu">Hauptmenü</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Finish -->
+  <section id="finish" class="screen modal">
+    <div class="card">
+      <div class="rec" id="fRec"></div>
+      <h2>Im Ziel</h2>
+      <div class="stats num" id="fStats"></div>
+      <div class="row">
+        <button class="btn" id="bAgain">Nochmal</button>
+        <button class="btn ghost" id="bFinMenu">Hauptmenü</button>
+      </div>
+    </div>
+  </section>
+  <div id="toast"></div>
+  <div id="rotate"><div>⟳</div>Bitte Gerät quer halten</div>
+</div>
+<!-- Spiel-Code: Quartex Pascal, kompiliert nach index.js (definiert main()) -->
+<script src="index.js"></script>
+<!-- three.js ist ein ES-Modul: hier laden, global ablegen und dann das Pascal-Programm starten -->
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { Sky } from 'three/addons/objects/Sky.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+Object.assign(window, { THREE, EffectComposer, RenderPass, UnrealBloomPass, SMAAPass, ShaderPass, OutputPass, Sky, mergeGeometries });
+main();
+</script>
+</body>
+</html>
