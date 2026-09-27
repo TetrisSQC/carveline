@@ -144,7 +144,7 @@ See "Verification" and "Pitfalls". After the tests passed, the compiler options 
 1. **Pascal is case-insensitive, JS is not.** This was by far the most frequent source of errors. Every place where JS used two names that differ only in case had to be renamed:
    - `T`/`t` in `Course`
    - `H`/`h`, `X`/`x`, `A`/`a`, `B`/`b`, `C`/`c`, `G`/`g`, `N`/`n`, `P`/`p` in the terrain builder
-   - `dT`/`dt` in the skier AI, where it silently shadowed the time step
+   - `dT`/`dt` in the skier AI, where the target offset would have replaced the time step
    - `R`/`r` in the star shape
    - `j`/`J` (joint array vs. joint enum)
    - `D`/`d` in the rival AI
@@ -152,12 +152,12 @@ See "Verification" and "Pitfalls". After the tests passed, the compiler options 
    - the field `rivals` vs. the constant `RIVALS`
    - the Trail's `P, B, K` buffers vs. the parameters `p, b, k`
 
-   The compiler caught most of them as type errors, but not all of them.
+   The compiler reports some of these as type errors. Others (two `Float` locals such as `dT`/`dt`) compile without complaint, so every function was checked by hand for such pairs.
 2. **Reserved words used as JS names.** `set`, `repeat`, `type`, `array` and `on` are escaped with `&` on externals (`&repeat`, `&type`, `&array`). Some names can't be used at all: `lambda`, `Low`, `Swap`, `shl`/`shr` (the joints `SHL`/`SHR` became `SHL_`/`SHR_`), and `on`, which also rules out a method called `On`.
-3. **A Pascal `var` declared inside a loop body compiles to a function-scoped JS `var`.** Closures created in that loop share one variable. In the options menu, every weather button ended up setting "fog". The fix is one small function per element (`BindClick(b, handler)`), so each closure gets its own parameter.
+3. **Every local variable is hoisted to one function-scoped JS `var`**, including inline `var`s declared inside a loop body. Closures created in that loop share one variable. In the options menu, every weather button ended up setting "fog". The fix is one small function per element (`BindClick(b, handler)`), so each closure gets its own parameter.
 4. **Anonymous-class field initialisers can refer to themselves.** In `class uniforms := uniforms; end`, the right-hand side means the new field, not the outer variable. Outer variables therefore get other names (`unis`, `cv`, `tm`, …).
 5. **The type of an `if` expression comes from its `then` branch.** `(if c then 1 else 0.72)` is an Integer expression. Float literals (`1.0`) are needed.
-6. **A `//` comment runs to the end of the line.** One constant line lost two constants after a trailing comment was inserted in the middle of it.
+6. **A `//` comment runs to the end of the line.** One dense line of constants lost its last two declarations after a comment was inserted in the middle of it. The compiler then reported the missing names.
 7. **`shr 0` is optimized away**, but JS relies on `>>> 0` to make a value unsigned. The last step of the mulberry32 RNG therefore stays in a small `asm` block.
 8. **`Format`/`FloatToStr` are locale-dependent** (on a German system: `3,14`). All displayed numbers go through `Number.toFixed`/`String()`. `Round` compiles to `Math.round`, so it matches JS exactly.
 9. **The compiler renames fields when names collide** (`pos` → `pos$2`). `asm` blocks therefore only reference Pascal *variables* via `@name`, never fields by their JS name. External test scripts need a small name lookup.
