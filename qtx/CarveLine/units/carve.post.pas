@@ -21,19 +21,19 @@ function OutlineShader: Variant;
 begin
   Result := new JObject;
   var u: Variant := new JObject;
-  u.tDiffuse := Uniform(null); u.tDepth := Uniform(null); u.uTexel := Uniform(new JVector2(1 / 1920, 1 / 1080));
+  u.tDiffuse := Uniform(null); u.tDepth := Uniform(null); u.uTexel := Uniform(new JVector2(1 / 1920, 1 / 1080)); u.uWidth := Uniform(1.8); u.uAlpha := Uniform(0.9);
   u.cameraNear := Uniform(0.1); u.cameraFar := Uniform(6000);
   u.uInk := Uniform(new JColor($0b1424)); u.uHaze := Uniform(new JColor($7f97b8));
   Result.uniforms := u;
   Result.vertexShader := VS_QUAD;
   Result.fragmentShader := #"#include <packing>
-    uniform sampler2D tDiffuse; uniform sampler2D tDepth; uniform vec2 uTexel; uniform float cameraNear; uniform float cameraFar; uniform vec3 uInk; uniform vec3 uHaze; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform sampler2D tDepth; uniform vec2 uTexel; uniform float uWidth; uniform float uAlpha; uniform float cameraNear; uniform float cameraFar; uniform vec3 uInk; uniform vec3 uHaze; varying vec2 vUv;
     float dist(vec2 uv){ return -perspectiveDepthToViewZ(texture2D(tDepth, uv).x, cameraNear, cameraFar); }
     // Objekt = kein Gelaende (Schnee schreibt Alpha 0.5) und nicht Himmel
     float isObj(vec2 uv, float dd){ return texture2D(tDiffuse, uv).a > 0.75 && dd < cameraFar * 0.97 ? 1.0 : 0.0; }
     void main(){
       vec3 col = texture2D(tDiffuse, vUv).rgb;
-      vec2 o = uTexel * 1.8;
+      vec2 o = uTexel * uWidth;
       float c = dist(vUv), l = dist(vUv - vec2(o.x, 0.0)), r = dist(vUv + vec2(o.x, 0.0)), u = dist(vUv + vec2(0.0, o.y)), d = dist(vUv - vec2(0.0, o.y));
       float wc = 1.0 / c, lap = abs(1.0 / l + 1.0 / r - 2.0 * wc) + abs(1.0 / u + 1.0 / d - 2.0 * wc);
       float e = smoothstep(0.035, 0.09, lap / wc);
@@ -46,7 +46,7 @@ begin
       else if (u < c && u <= d) nuv = vUv + vec2(0.0, o.y); else if (d < c) nuv = vUv - vec2(0.0, o.y);
       float obj = isObj(nuv, nearest);
       a *= mix(0.2 * (1.0 - smoothstep(40.0, 220.0, nearest)), 1.0, obj);
-      gl_FragColor = vec4(mix(col, mix(uInk, uHaze, smoothstep(120.0, 2600.0, nearest)), a * 0.9), 1.0);
+      gl_FragColor = vec4(mix(col, mix(uInk, uHaze, smoothstep(120.0, 2600.0, nearest)), a * uAlpha), 1.0);
     }";
 end;
 

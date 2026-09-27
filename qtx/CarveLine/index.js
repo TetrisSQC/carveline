@@ -495,7 +495,7 @@ var TGame = {
       $.bodies = [];
       $.bumpKeys = [];
       $.bumpTimes = [];
-      $.cdLast = $.fpsFrames = $.lowCount = $.rank = 0;
+      $.cdLast = $.fpsFrames = $.lowCount = $.rank = $.vh = $.vw = 0;
       $.fromJ = [];
       $.ghostRec = [];
       $.presetName = $.riderMode = $.rivalText = $.state = "";
@@ -1056,6 +1056,7 @@ var TGame = {
          a$110 = 0,
          rv$1 = null,
          bd = null,
+         vv = undefined,
          a$113 = [];
       cv = El("c");
       Self.renderer = new THREE.WebGLRenderer({
@@ -1114,7 +1115,7 @@ var TGame = {
       Self.mountains = TMountains.Create$152($New(TMountains),Self.scene);
       Self.chal = TChallenges.Create$164($New(TChallenges),Self.scene,Self.course);
       MakeGate(Self.scene,Self.course,1.5,"START","#1d2a44");
-      MakeGate(Self.scene,Self.course,Self.course.zf,"ZIEL · FINISH","#e0442c");
+      MakeGate(Self.scene,Self.course,Self.course.zf,"ZIEL "+UC(183)+" FINISH","#e0442c");
       Self.snowfall = TSnowfall.Create$151($New(TSnowfall),Self.scene,2200);
       Self.particles = TParticleSystem.Create$161($New(TParticleSystem),Self.scene,PRESET_HIGH.particles$1);
       Self.trail = TTrail.Create$160($New(TTrail),Self.scene,700);
@@ -1227,6 +1228,15 @@ var TGame = {
       window.addEventListener("resize",function (e$1) {
          TGame.OnResize(Self);
       });
+      window.addEventListener("orientationchange",function (e$1) {
+         TGame.OnResize(Self);
+      });
+      vv = window.visualViewport;
+      if (Truthy(vv)) {
+         vv.addEventListener("resize",function (e$1) {
+            TGame.OnResize(Self);
+         });
+      }
       TSkierAI.Reset$1(Self.skiers,20);
       TGame.ShowBest(Self);
       Self.FLoopProc = $Event1(Self,TGame.Loop);
@@ -1379,6 +1389,9 @@ var TGame = {
          au = null,
          hi$1 = null;
       requestAnimationFrame(Self.FLoopProc);
+      if (window.innerWidth != Self.vw || window.innerHeight != Self.vh) {
+         TGame.OnResize(Self);
+      }
       dtReal = ClampF((now$2 - Self.last) / 1000,0,0.1);
       Self.last = now$2;
       TInput.Update$7(Self.input,dtReal);
@@ -1526,6 +1539,8 @@ var TGame = {
          h$3 = 0;
       w$5 = window.innerWidth;
       h$3 = window.innerHeight;
+      Self.vw = w$5;
+      Self.vh = h$3;
       Self.camera.aspect = w$5 / h$3;
       Self.camera.updateProjectionMatrix();
       Self.renderer.setSize(w$5,h$3,false);
@@ -1547,7 +1562,7 @@ var TGame = {
       Self.menuFromTitle = fromTitle;
       Self.paused = !(fromTitle);
       El("pTitle").textContent = (fromTitle)?"Optionen":"Pause";
-      El("bResume").textContent = (fromTitle)?"Zurück":"Weiter";
+      El("bResume").textContent = (fromTitle)?"Zur"+UC(252)+"ck":"Weiter";
       El("bRestart").style.display = (fromTitle)?"none":"";
       El("bMenu").style.display = (fromTitle)?"none":"";
       TGame.SyncMenu(Self);
@@ -1649,7 +1664,7 @@ var TGame = {
    ,ShowBest:function(Self) {
       var b$8;
       b$8 = TGame.GetBest(Self);
-      El("tBest").textContent = TRACK.name$3 + ((Truthy(b$8))?"  ·  Bestzeit  "+FmtTime(Number(b$8.time))+"   ·   Score "+FmtInt(Number(b$8.score)):"  ·  noch keine Bestzeit");
+      El("tBest").textContent = TRACK.name$3 + ((Truthy(b$8))?"  "+UC(183)+"  Bestzeit  "+FmtTime(Number(b$8.time))+"   "+UC(183)+"   Score "+FmtInt(Number(b$8.score)):"  "+UC(183)+"  noch keine Bestzeit");
    }
    /// procedure TGame.ShowFinish()
    ,ShowFinish:function(Self) {
@@ -1716,7 +1731,7 @@ var TGame = {
       row$1("Flips \/ Grabs",IntToStr$_Integer_(s$12.flips$1)+" \/ "+IntToStr$_Integer_(s$12.grabs));
       row$1("Tore",IntToStr$_Integer_(Self.chal.passed)+" \/ "+IntToStr$_Integer_(Self.chal.gates.length));
       row$1("Sterne",IntToStr$_Integer_(Self.chal.got$1)+" \/ "+IntToStr$_Integer_(Self.chal.stars$1.length));
-      row$1("Stürze",IntToStr$_Integer_(s$12.crashes));
+      row$1("St"+UC(252)+"rze",IntToStr$_Integer_(s$12.crashes));
       row$1("Bestzeit",FmtTime(bt));
       a$116 = Self.rivals$1;
       var $temp10;
@@ -1773,7 +1788,7 @@ var TGame = {
       } else {
          why = "";
       }
-      THud.Pop$1(Self.hud,"Sturz",why + ((Self.finished)?"":" · +"+FmtInt(3)+"s"),true);
+      THud.Pop$1(Self.hud,"Sturz",why + ((Self.finished)?"":" "+UC(183)+" +"+FmtInt(3)+"s"),true);
       p$7.crashReason = "";
       p$7.frozen = true;
    }
@@ -1872,7 +1887,7 @@ var TGame = {
       selCol("colPants",Self.opts.col.pants);
       selCol("colHelmet",Self.opts.col.helmet);
       selCol("colDeck",Self.opts.col.deck);
-      El("hCam").textContent = "CAM · " + CAM_NAMES[Self.camRig.mode];
+      El("hCam").textContent = "CAM "+UC(183)+" "+CAM_NAMES[Self.camRig.mode];
    }
    /// procedure TGame.ToTitle()
    ,ToTitle:function(Self) {
@@ -1940,12 +1955,18 @@ var TGame = {
    }
    /// procedure TGame.UpdateOutlineTexel()
    ,UpdateOutlineTexel:function(Self) {
-      var pr$1 = 0;
+      var pr$1 = 0,
+         s$12 = 0,
+         u$3;
       if (!Self.outlinePass) {
          return;
       }
       pr$1 = Self.renderer.getPixelRatio();
-      Self.outlinePass.uniforms.uTexel.value.set(1 / (window.innerWidth * pr$1),1 / (window.innerHeight * pr$1));
+      u$3 = Self.outlinePass.uniforms;
+      s$12 = Smoothstep(380,600,Min$_Integer_Integer_(window.innerWidth,window.innerHeight));
+      u$3.uTexel.value.set(1 / (window.innerWidth * pr$1),1 / (window.innerHeight * pr$1));
+      u$3.uWidth.value = Lerp(1.15,1.8,s$12);
+      u$3.uAlpha.value = Lerp(0.55,0.9,s$12);
    }
    /// procedure TGame.UpdateRun(dt: Float; dtReal: Float)
    ,UpdateRun:function(Self, dt, dtReal) {
@@ -2101,7 +2122,7 @@ var TGame = {
          }
          if (Self.state == "play" && (Self.rank!=0) && rk < Self.rank && (!(Self.finished))) {
             TAudioEngine.MusicOvertake(Self.audio);
-            THud.Pop$1(Self.hud,"Überholt!","Platz " + IntToStr$_Integer_(rk),false);
+            THud.Pop$1(Self.hud,UC(220) + "berholt!","Platz " + IntToStr$_Integer_(rk),false);
          }
          Self.rank = rk;
          Self.rivalText = "Platz "+IntToStr$_Integer_(rk)+"\/"+IntToStr$_Integer_(1 + activeCount);
@@ -2405,7 +2426,7 @@ function StartCarveLine() {
       }
       el = El("err");
       el.style.display = "block";
-      el.textContent = "Fehler: "+((msg != "")?msg:String(e$1))+((e$1.filename != "")?"\n"+e$1.filename+":"+IntToStr$_Integer_(e$1.lineno):"")+"\n(antippen zum Schließen)";
+      el.textContent = "Fehler: "+((msg != "")?msg:String(e$1))+((e$1.filename != "")?"\n"+e$1.filename+":"+IntToStr$_Integer_(e$1.lineno):"")+"\n(antippen zum Schlie"+UC(223)+"en)";
    });
    El("err").onclick = function (e$1) {
       El("err").style.display = "none";
@@ -5680,6 +5701,11 @@ function VSet(o$1, key$2, val) {
 function VGet(o$1, key$2) {
    var Result = undefined;
    Result = (o$1)[key$2];
+   return Result
+}
+function UC(code$2) {
+   var Result = "";
+   Result = String.fromCharCode(code$2);
    return Result
 }
 function Truthy(v$4) {
@@ -13621,13 +13647,13 @@ var TScore = {
          Self.flips$1 += fl$1;
       }
       if (spins) {
-         parts$8.push(IntToStr$_Integer_(spins * 360) + "°");
+         parts$8.push(IntToStr$_Integer_(spins * 360) + UC(176));
       }
       if (grab$4 != 0) {
          parts$8.push("Indy");
          ++Self.grabs;
       }
-      THud.Pop$1(Self.hud$1,(parts$8.length > 0)?StrJoin(parts$8," · "):"Air "+ToFixed(t$11,1)+"s","+" + IntToStr$_Integer_(v$4),false);
+      THud.Pop$1(Self.hud$1,(parts$8.length > 0)?StrJoin(parts$8," "+UC(183)+" "):"Air "+ToFixed(t$11,1)+"s","+" + IntToStr$_Integer_(v$4),false);
    }
    /// procedure TScore.OnCrash()
    ,OnCrash:function(Self) {
@@ -13862,7 +13888,7 @@ var THud = {
       dist$1 = ClampF(g$8.posZ - 4,0,courseLength);
       THud.E(Self,"Prog").style.width = ToFixed(dist$1 / courseLength * 100,1) + "%";
       THud.SetText(Self,"Dist",IntToStr$_Integer_(Round(dist$1))+" m  \/  "+NumStr(courseLength)+" m");
-      THud.SetText(Self,"Extra","Tore "+IntToStr$_Integer_(g$8.gatesPassed)+"\/"+IntToStr$_Integer_(g$8.gatesTotal)+"  ·  \u2605 "+IntToStr$_Integer_(g$8.starsGot)+"\/"+IntToStr$_Integer_(g$8.starsTotal)+((g$8.rivalText$1 != "")?"  ·  " + g$8.rivalText$1:""));
+      THud.SetText(Self,"Extra","Tore "+IntToStr$_Integer_(g$8.gatesPassed)+"\/"+IntToStr$_Integer_(g$8.gatesTotal)+"  "+UC(183)+"  \u2605 "+IntToStr$_Integer_(g$8.starsGot)+"\/"+IntToStr$_Integer_(g$8.starsTotal)+((g$8.rivalText$1 != "")?"  "+UC(183)+"  "+g$8.rivalText$1:""));
    }
    ,Destroy:TObject.Destroy
 };
@@ -13888,13 +13914,15 @@ function OutlineShader() {
    u$1.tDiffuse = Uniform(null);
    u$1.tDepth = Uniform(null);
    u$1.uTexel = Uniform(new THREE.Vector2(0.000520833333333333,0.000925925925925926));
+   u$1.uWidth = Uniform(1.8);
+   u$1.uAlpha = Uniform(0.9);
    u$1.cameraNear = Uniform(0.1);
    u$1.cameraFar = Uniform(6000);
    u$1.uInk = Uniform(new THREE.Color(726052));
    u$1.uHaze = Uniform(new THREE.Color(8361912));
    Result.uniforms = u$1;
    Result.vertexShader = "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }";
-   Result.fragmentShader = "#include <packing>\r\n    uniform sampler2D tDiffuse; uniform sampler2D tDepth; uniform vec2 uTexel; uniform float cameraNear; uniform float cameraFar; uniform vec3 uInk; uniform vec3 uHaze; varying vec2 vUv;\r\n    float dist(vec2 uv){ return -perspectiveDepthToViewZ(texture2D(tDepth, uv).x, cameraNear, cameraFar); }\r\n    \/\/ Objekt = kein Gelaende (Schnee schreibt Alpha 0.5) und nicht Himmel\r\n    float isObj(vec2 uv, float dd){ return texture2D(tDiffuse, uv).a > 0.75 && dd < cameraFar * 0.97 ? 1.0 : 0.0; }\r\n    void main(){\r\n      vec3 col = texture2D(tDiffuse, vUv).rgb;\r\n      vec2 o = uTexel * 1.8;\r\n      float c = dist(vUv), l = dist(vUv - vec2(o.x, 0.0)), r = dist(vUv + vec2(o.x, 0.0)), u = dist(vUv + vec2(0.0, o.y)), d = dist(vUv - vec2(0.0, o.y));\r\n      float wc = 1.0 \/ c, lap = abs(1.0 \/ l + 1.0 \/ r - 2.0 * wc) + abs(1.0 \/ u + 1.0 \/ d - 2.0 * wc);\r\n      float e = smoothstep(0.035, 0.09, lap \/ wc);\r\n      float nearest = min(c, min(min(l, r), min(u, d))), farthest = max(c, max(max(l, r), max(u, d)));\r\n      float sky = step(cameraFar * 0.97, farthest);                       \/\/ Silhouette gegen den Himmel (Berge, Baeume)\r\n      float a = e * max(1.0 - smoothstep(180.0, 800.0, nearest), sky * 0.8);\r\n      \/\/ Volle Linie nur, wenn die vordere Flaeche an der Kante ein Objekt ist; Gelaende-Kuppen vor Bergen\/Himmel nur zart und nah\r\n      vec2 nuv = vUv;\r\n      if (l < c && l <= r && l <= u && l <= d) nuv = vUv - vec2(o.x, 0.0); else if (r < c && r <= u && r <= d) nuv = vUv + vec2(o.x, 0.0);\r\n      else if (u < c && u <= d) nuv = vUv + vec2(0.0, o.y); else if (d < c) nuv = vUv - vec2(0.0, o.y);\r\n      float obj = isObj(nuv, nearest);\r\n      a *= mix(0.2 * (1.0 - smoothstep(40.0, 220.0, nearest)), 1.0, obj);\r\n      gl_FragColor = vec4(mix(col, mix(uInk, uHaze, smoothstep(120.0, 2600.0, nearest)), a * 0.9), 1.0);\r\n    }";
+   Result.fragmentShader = "#include <packing>\r\n    uniform sampler2D tDiffuse; uniform sampler2D tDepth; uniform vec2 uTexel; uniform float uWidth; uniform float uAlpha; uniform float cameraNear; uniform float cameraFar; uniform vec3 uInk; uniform vec3 uHaze; varying vec2 vUv;\r\n    float dist(vec2 uv){ return -perspectiveDepthToViewZ(texture2D(tDepth, uv).x, cameraNear, cameraFar); }\r\n    \/\/ Objekt = kein Gelaende (Schnee schreibt Alpha 0.5) und nicht Himmel\r\n    float isObj(vec2 uv, float dd){ return texture2D(tDiffuse, uv).a > 0.75 && dd < cameraFar * 0.97 ? 1.0 : 0.0; }\r\n    void main(){\r\n      vec3 col = texture2D(tDiffuse, vUv).rgb;\r\n      vec2 o = uTexel * uWidth;\r\n      float c = dist(vUv), l = dist(vUv - vec2(o.x, 0.0)), r = dist(vUv + vec2(o.x, 0.0)), u = dist(vUv + vec2(0.0, o.y)), d = dist(vUv - vec2(0.0, o.y));\r\n      float wc = 1.0 \/ c, lap = abs(1.0 \/ l + 1.0 \/ r - 2.0 * wc) + abs(1.0 \/ u + 1.0 \/ d - 2.0 * wc);\r\n      float e = smoothstep(0.035, 0.09, lap \/ wc);\r\n      float nearest = min(c, min(min(l, r), min(u, d))), farthest = max(c, max(max(l, r), max(u, d)));\r\n      float sky = step(cameraFar * 0.97, farthest);                       \/\/ Silhouette gegen den Himmel (Berge, Baeume)\r\n      float a = e * max(1.0 - smoothstep(180.0, 800.0, nearest), sky * 0.8);\r\n      \/\/ Volle Linie nur, wenn die vordere Flaeche an der Kante ein Objekt ist; Gelaende-Kuppen vor Bergen\/Himmel nur zart und nah\r\n      vec2 nuv = vUv;\r\n      if (l < c && l <= r && l <= u && l <= d) nuv = vUv - vec2(o.x, 0.0); else if (r < c && r <= u && r <= d) nuv = vUv + vec2(o.x, 0.0);\r\n      else if (u < c && u <= d) nuv = vUv + vec2(0.0, o.y); else if (d < c) nuv = vUv - vec2(0.0, o.y);\r\n      float obj = isObj(nuv, nearest);\r\n      a *= mix(0.2 * (1.0 - smoothstep(40.0, 220.0, nearest)), 1.0, obj);\r\n      gl_FragColor = vec4(mix(col, mix(uInk, uHaze, smoothstep(120.0, 2600.0, nearest)), a * uAlpha), 1.0);\r\n    }";
    return Result
 }
 function GradeShader() {
@@ -14215,8 +14243,8 @@ var TQTXCodec = {
    ,MakeCodecInfo$:function($){return $.ClassType.MakeCodecInfo($)}
 };
 TQTXCodec.$Intf={
-   IQTXCodecProcess:[TQTXCodec.EncodeData,TQTXCodec.DecodeData]
-   ,IQTXCodecBinding:[TQTXCodec.RegisterBinding,TQTXCodec.UnRegisterBinding]
+   IQTXCodecBinding:[TQTXCodec.RegisterBinding,TQTXCodec.UnRegisterBinding]
+   ,IQTXCodecProcess:[TQTXCodec.EncodeData,TQTXCodec.DecodeData]
 }
 /// TBase64Codec = class (TQTXCodec)
 var TBase64Codec = {
@@ -15404,8 +15432,8 @@ var TQTXStream = {
    ,WriteBuffer$1$:function($){return $.ClassType.WriteBuffer$1.apply($.ClassType, arguments)}
 };
 TQTXStream.$Intf={
-   IManagedData:[TQTXStream.ToBytes$1,TQTXStream.FromBytes$3,TQTXStream.GetSize$1,TQTXStream.GetPosition$1,TQTXStream.ReadBuffer$1,TQTXStream.WriteBuffer$1,TQTXStream.Grow$1,TQTXStream.Shrink$1,TQTXStream.Assign$3,TQTXStream.Append$3,TQTXStream.CalcCRC32$6,TQTXStream.CalcAdler32$6]
-   ,IAsyncStream:[TQTXStream.ReadA,TQTXStream.WriteA,TQTXStream.GetSizeA,TQTXStream.SetSizeA,TQTXStream.SeekA,TQTXStream.ReadAll,TQTXStream.GetPositionA]
+   IAsyncStream:[TQTXStream.ReadA,TQTXStream.WriteA,TQTXStream.GetSizeA,TQTXStream.SetSizeA,TQTXStream.SeekA,TQTXStream.ReadAll,TQTXStream.GetPositionA]
+   ,IManagedData:[TQTXStream.ToBytes$1,TQTXStream.FromBytes$3,TQTXStream.GetSize$1,TQTXStream.GetPosition$1,TQTXStream.ReadBuffer$1,TQTXStream.WriteBuffer$1,TQTXStream.Grow$1,TQTXStream.Shrink$1,TQTXStream.Assign$3,TQTXStream.Append$3,TQTXStream.CalcCRC32$6,TQTXStream.CalcAdler32$6]
 }
 /// TQTXErrorObject = class (TObject)
 var TQTXErrorObject = {

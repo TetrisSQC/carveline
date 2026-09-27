@@ -126,7 +126,7 @@ type
     paused, finished, menuFromTitle: Boolean;
     acc, timeScale, slowT, runTime, penalty, finishTime, finishT, invuln, flyT, flyZ, sprayAcc, clock, last,
       fpsTime, ragT, standT, cdT, musicI: Float;
-    fpsFrames, lowCount, cdLast, rank: Integer;
+    fpsFrames, lowCount, cdLast, rank, vw, vh: Integer;
     constructor Create;
     procedure ApplyAtmosphere;
     procedure ApplyPreset(name: String; initial: Boolean = False);
@@ -184,7 +184,7 @@ begin
   resort := TResort.Create(scene, course); terrain.resort := resort;
   mountains := TMountains.Create(scene);
   chal := TChallenges.Create(scene, course);
-  MakeGate(scene, course, 1.5, 'START', '#1d2a44'); MakeGate(scene, course, course.zf, 'ZIEL '#$B7' FINISH', '#e0442c');
+  MakeGate(scene, course, 1.5, 'START', '#1d2a44'); MakeGate(scene, course, course.zf, 'ZIEL ' + UC($B7) + ' FINISH', '#e0442c');
   snowfall := TSnowfall.Create(scene);
   particles := TParticleSystem.Create(scene, PRESET_HIGH.particles);
   trail := TTrail.Create(scene);
@@ -221,6 +221,10 @@ begin
   ApplyPreset(presetName, True);
   ApplyAtmosphere; rider.SetColors(opts.col);
   BindUI; OnResize; window.addEventListener('resize', procedure(e: JEvent) begin OnResize; end);
+  window.addEventListener('orientationchange', procedure(e: JEvent) begin OnResize; end);
+  var vv: Variant;
+  asm @vv = window.visualViewport; end;
+  if Truthy(vv) then JEventTarget(vv).addEventListener('resize', procedure(e: JEvent) begin OnResize; end);
   skiers.Reset(20);
   ShowBest;
   FLoopProc := Loop;
@@ -331,7 +335,7 @@ end;
 procedure TGame.ShowBest;
 begin
   var b := GetBest;
-  El('tBest').textContent := TRACK.name + (if Truthy(b) then '  '#$B7'  Bestzeit  ' + FmtTime(b.time) + '   '#$B7'   Score ' + FmtInt(b.score) else '  '#$B7'  noch keine Bestzeit');
+  El('tBest').textContent := TRACK.name + (if Truthy(b) then '  ' + UC($B7) + '  Bestzeit  ' + FmtTime(b.time) + '   ' + UC($B7) + '   Score ' + FmtInt(b.score) else '  ' + UC($B7) + '  noch keine Bestzeit');
 end;
 
 // ---------- Grafik-Presets ----------
@@ -381,16 +385,19 @@ end;
 procedure TGame.OnResize;
 var w, h: Integer;
 begin
-  w := window.innerWidth; h := window.innerHeight; camera.aspect := w / h; camera.updateProjectionMatrix;
+  w := window.innerWidth; h := window.innerHeight; vw := w; vh := h; camera.aspect := w / h; camera.updateProjectionMatrix;
   renderer.setSize(w, h, False); composer.setSize(w, h); UpdateOutlineTexel;
 end;
 
+// Tuschelinien nach Bildschirmgroesse: auf Handys (kurze Seite ~400 px) duenner und blasser, ab ~600 px wie gehabt
 procedure TGame.UpdateOutlineTexel;
-var pr: Float;
+var pr, s: Float;
 begin
   if outlinePass = nil then exit;
-  pr := renderer.getPixelRatio;
-  JVector2(outlinePass.uniforms.uTexel.value).set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
+  pr := renderer.getPixelRatio; var u := outlinePass.uniforms;
+  s := Smoothstep(380, 600, Min(window.innerWidth, window.innerHeight));
+  JVector2(u.uTexel.value).set(1 / (window.innerWidth * pr), 1 / (window.innerHeight * pr));
+  u.uWidth.value := Lerp(1.15, 1.8, s); u.uAlpha.value := Lerp(0.55, 0.9, s);
 end;
 
 // ---------- UI ----------
@@ -495,7 +502,7 @@ begin
     for var b in El(id).querySelectorAll('button') do b.classList.toggle('sel', StrToInt(String(b.dataset.v)) = v);
   end;
   selCol('colJacket', opts.col.jacket); selCol('colPants', opts.col.pants); selCol('colHelmet', opts.col.helmet); selCol('colDeck', opts.col.deck);
-  El('hCam').textContent := 'CAM '#$B7' ' + CAM_NAMES[camRig.mode];
+  El('hCam').textContent := 'CAM ' + UC($B7) + ' ' + CAM_NAMES[camRig.mode];
 end;
 
 procedure TGame.SetCam(m: Integer);
@@ -506,7 +513,7 @@ end;
 procedure TGame.OpenMenu(fromTitle: Boolean);
 begin
   menuFromTitle := fromTitle; paused := not fromTitle;
-  El('pTitle').textContent := if fromTitle then 'Optionen' else 'Pause'; El('bResume').textContent := if fromTitle then 'Zur'#$FC'ck' else 'Weiter';
+  El('pTitle').textContent := if fromTitle then 'Optionen' else 'Pause'; El('bResume').textContent := if fromTitle then 'Zur' + UC($FC) + 'ck' else 'Weiter';
   El('bRestart').style.display := if fromTitle then 'none' else ''; El('bMenu').style.display := if fromTitle then 'none' else '';
   SyncMenu; El('pause').classList.add('on');
 end;
@@ -640,7 +647,7 @@ begin
   if reason = 'skier' then why := 'Kollision' else if reason = 'tree' then why := 'Baum' else if reason = 'net' then why := 'Fangnetz'
   else if reason = 'obstacle' then why := 'Hindernis' else if reason = 'rival' then why := 'Auffahrunfall' else if reason = 'landing' then why := 'Landung'
   else if reason = 'edge' then why := 'Verkantet' else if reason = 'lost' then why := 'Abgekommen' else why := '';
-  hud.Pop('Sturz', why + (if finished then '' else ' '#$B7' +' + FmtInt(CONFIG.crashPenalty) + 's'), True);
+  hud.Pop('Sturz', why + (if finished then '' else ' ' + UC($B7) + ' +' + FmtInt(CONFIG.crashPenalty) + 's'), True);
   p.crashReason := ''; p.frozen := True;
 end;
 
@@ -713,6 +720,8 @@ procedure TGame.Loop(now: Float);
 var dtReal, dt, cz, mz, grd, kmh, mi: Float;
 begin
   requestAnimationFrame(FLoopProc);
+  // Drehen: das resize-Event kommt auf Mobilgeraeten teils vor den neuen Massen
+  if (window.innerWidth <> vw) or (window.innerHeight <> vh) then OnResize;
   dtReal := ClampF((now - last) / 1000, 0, 0.1); last := now;
   input.Update(dtReal);
   if input.Consume('pause') and ((state = 'play') or (state = 'countdown')) then begin if paused then CloseMenu else OpenMenu(False); end;
@@ -831,7 +840,7 @@ begin
     rk := 1;
     for var rv in rivals do
       if rv.active and (if finished then rv.finished and (rv.time < finishTime) else rv.finished or (rv.phys.pos.z > p.pos.z)) then Inc(rk);
-    if (state = 'play') and (rank <> 0) and (rk < rank) and not finished then begin audio.MusicOvertake; hud.Pop(#$DC'berholt!', 'Platz ' + IntToStr(rk)); end;
+    if (state = 'play') and (rank <> 0) and (rk < rank) and not finished then begin audio.MusicOvertake; hud.Pop(UC($DC) + 'berholt!', 'Platz ' + IntToStr(rk)); end;
     rank := rk; rivalText := 'Platz ' + IntToStr(rk) + '/' + IntToStr(1 + activeCount);
   end else rivalText := '';
   // Skifahrer + Kollision (Kapsel vs Kapsel) + Near Miss
@@ -1011,7 +1020,7 @@ begin
   row('Top-Speed', IntToStr(Round(s.topSpeed)) + ' km/h'); row('Near Misses', IntToStr(s.nearMiss)); row('Clean Carves', IntToStr(s.carves));
   row('Airtime', ToFixed(s.airTotal, 1) + ' s'); row('Flips / Grabs', IntToStr(s.flips) + ' / ' + IntToStr(s.grabs));
   row('Tore', IntToStr(chal.passed) + ' / ' + IntToStr(chal.gates.Length)); row('Sterne', IntToStr(chal.got) + ' / ' + IntToStr(chal.stars.Length));
-  row('St'#$FC'rze', IntToStr(s.crashes)); row('Bestzeit', FmtTime(bt));
+  row('St' + UC($FC) + 'rze', IntToStr(s.crashes)); row('Bestzeit', FmtTime(bt));
   for var rv in rivals do if rv.active then row(rv.def.name, if rv.finished then FmtTime(rv.time) else 'noch unterwegs');
   html := '';
   for var rw in rows do html += rw;
@@ -1048,7 +1057,7 @@ begin
     var msg := String(e.message ?? '');
     if (e.filename = '') and ((msg = 'Script error.') or (msg = 'Script error')) then begin consoleWarn('Fremdes Skript meldete einen Fehler ohne Details'); exit; end;
     var el := El('err'); el.style.display := 'block';
-    el.textContent := 'Fehler: ' + (if msg <> '' then msg else String(Variant(e))) + (if e.filename <> '' then #10 + e.filename + ':' + IntToStr(e.lineno) else '') + #10'(antippen zum Schlie'#$DF'en)';
+    el.textContent := 'Fehler: ' + (if msg <> '' then msg else String(Variant(e))) + (if e.filename <> '' then #10 + e.filename + ':' + IntToStr(e.lineno) else '') + #10'(antippen zum Schlie' + UC($DF) + 'en)';
   end);
   El('err').onclick := procedure(e: JEvent) begin El('err').style.display := 'none'; end;
   InitGfx;

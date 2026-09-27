@@ -379,12 +379,20 @@ procedure VSet(o: Variant; key: String; val: Variant);
 function NewDict: Variant;
 // void el.offsetWidth: Layout erzwingen (CSS-Transition neu starten)
 procedure ForceReflow(e: JElement);
+// Zeichen per String.fromCharCode. Noetig fuer #$80..#$FF (·, ü, ß, °): der Quartex-Compiler gibt diese mit OptimizeForSize=1
+// als Ersatzzeichen U+FFFD aus; Zeichen ab #$100 (★) schreibt er korrekt als \uXXXX.
+function UC(code: Integer): String;
 // typeof v
 function JsTypeOf(v: Variant): String;
 // Farbe als CSS-Hex ohne '#': h.toString(16).padStart(6, '0')
 function HexColor(h: Integer): String;
 
 implementation
+
+function UC(code: Integer): String;
+begin
+  asm @Result = String.fromCharCode(@code); end;
+end;
 
 function JsTypeOf(v: Variant): String;
 begin

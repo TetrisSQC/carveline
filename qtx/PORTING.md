@@ -10,7 +10,7 @@ The complete game now runs from Pascal source:
 |---|---|---|
 | Game logic | `index.html` (one `<script type="module">`, ~3,000 dense lines) | 24 units in `CarveLine/units/`, 7,783 lines |
 | Music engine | `downhill-music.js` (467 lines) | `carve.music.pas` (ported as well) |
-| Output | the source itself | `CarveLine/index.js`, 299 KB (compiled by QTX 1.2.0.1) |
+| Output | the source itself | `CarveLine/index.js`, ~525 KB unminified (compiled by QTX 1.2.0.1; see step 8 for why size optimization is off) |
 | three.js | r0.186.1 from jsDelivr | same, bound through `external` classes |
 | Inline JavaScript (`asm`) | – | 34 small blocks, mostly one-liners (see below) |
 
@@ -113,7 +113,17 @@ The `ShaderPass.render` override, which binds the depth texture of the read buff
 
 ### 8. Tests, bugs found, optimization, cleanup
 
-See "Verification" and "Pitfalls". After the tests passed, the compiler options were switched to `Optimize=1`, `InlineMagic=1` and `OptimizeForSize=1`, with source maps off. That took `index.js` from 524 KB to 299 KB, and all tests were re-run on the optimized build. The template leftovers (form, widget CSS, polyfills, `platform.js`) were deleted.
+See "Verification" and "Pitfalls". After the tests passed, the compiler options were switched to `Optimize=1`, `InlineMagic=1` and `OptimizeForSize=1`, with source maps off. That took `index.js` from 524 KB to 299 KB, and the automated tests passed on the optimized build as well.
+
+A test on a real phone then showed broken characters in the HUD and menus (`·`, `ü`, `Ü`, `ß`, `°` appeared as `�`). With `OptimizeForSize=1`, the compiler writes every string character in the range `#$80..#$FF` as U+FFFD. That also affects literals inside the QTX RTL. Characters from `#$100` up (for example `★`) are written correctly as `\uXXXX`. The automated tests had only checked numbers and states, not these characters.
+
+The fix has two parts:
+- These characters are now built at runtime with `UC(code)`, which calls `String.fromCharCode`, so they are correct in every compiler mode.
+- The size optimization is off again, because it also corrupts RTL literals. `index.js` is back at about 525 KB, and a server with gzip shrinks it considerably anyway.
+
+The IDE also writes its own in-memory project settings back to `app.config.ini` when it closes. Changes made to the file from outside while the IDE is running can be lost that way, so project options should be set inside the IDE.
+
+The template leftovers (form, widget CSS, polyfills, `platform.js`) were deleted.
 
 ## Verification
 
@@ -161,7 +171,8 @@ See "Verification" and "Pitfalls". After the tests passed, the compiler options 
 7. **`shr 0` is optimized away**, but JS relies on `>>> 0` to make a value unsigned. The last step of the mulberry32 RNG therefore stays in a small `asm` block.
 8. **`Format`/`FloatToStr` are locale-dependent** (on a German system: `3,14`). All displayed numbers go through `Number.toFixed`/`String()`. `Round` compiles to `Math.round`, so it matches JS exactly.
 9. **The compiler renames fields when names collide** (`pos` → `pos$2`). `asm` blocks therefore only reference Pascal *variables* via `@name`, never fields by their JS name. External test scripts need a small name lookup.
-10. **Service worker caching during development.** The PWA serves `index.js` from its cache first, so a freshly compiled build only shows up on the next load. The test driver disables the cache and bypasses the service worker.
+10. **Characters `#$80..#$FF` break with `OptimizeForSize=1`.** They come out as U+FFFD (see step 8). Build them at runtime (`UC($B7)`) or leave that option off.
+11. **Service worker caching during development.** The PWA serves `index.js` from its cache first, so a freshly compiled build only shows up on the next load. The test driver disables the cache and bypasses the service worker.
 
 ## Where `asm` is still used, and why
 
@@ -180,6 +191,15 @@ See "Verification" and "Pitfalls". After the tests passed, the compiler options 
 - The constant `RIVALS` is `RIVAL_DEFS`, the camera rig field is `camRig`, and some locals got new names (pitfall 1). The Trail buffers are `PosA`, `BirthA`, `OnA`, `SideA` and `KindA`.
 - `window.carveTest.physRun(n)` exists only for the physics comparison.
 - The PWA files are copied. `sw.js` caches `index.js` instead of `downhill-music.js`.
+
+## Changes after the port
+
+- **Touch buttons (both versions):** The right-hand touch buttons (jump, grab, cam, pause) are now subtly domed buttons instead of flat translucent circles. Each has a light rim, a soft highlight, an inner ring and a low coloured drop edge (`--c` per button). When pressed, a button sinks slightly and glows. After feedback from a phone screenshot, all four buttons are smaller than before, both on regular and on short screens. This is pure CSS in `index.html`, so the JS original and the QTX port received the same change.
+- **Cel-shading outlines on small displays (both versions):** The ink lines are drawn with a fixed offset in render pixels. On phones the image is upscaled, so the lines looked heavy. `OutlineShader` now has `uWidth` and `uAlpha` uniforms. `updateOutlineTexel()` / `TGame.UpdateOutlineTexel` sets them from the short side of the viewport: at about 380 px (phone in landscape) they are 1.15 px and 55 %. From 600 px up they stay at the original 1.8 px and 90 %, so desktop is unchanged. Both versions were checked to produce the same values at phone and desktop size.
+
+- **Rotation on phones (both versions):** When the phone was turned from portrait to landscape, the scene was sometimes squashed. On mobile browsers the `resize` event can fire before `innerWidth`/`innerHeight` hold the new values, and the camera kept the old aspect ratio. The game now also listens to `orientationchange` and `visualViewport` `resize`. In addition, the loop compares the viewport size with the last applied size every frame (two integer comparisons) and resizes when it differs. Test: with all resize and orientation events blocked, a switch from 393×852 to 852×393 still ends with the correct camera aspect (2.168) in both versions.
+
+- **Mojibake with the IDE's web server (QTX version):** When the game was opened through the Quartex IDE's built-in web server, markup text was garbled in Edge (`überhole` → `Ã¼berhole`, `▼` → `â–¼`). Opened any other way it was fine, and `index.html` itself is valid UTF-8 with `<meta charset="utf-8">`. An HTTP `Content-Type` charset takes precedence over the meta tag, and the IDE server evidently declares or reads the file as a Windows code page. The QTX `index.html` is therefore now **pure ASCII**: non-ASCII characters in the markup are numeric entities (`&#252;`, `&#9660;`, …), and umlauts in CSS comments are transliterated. `manifest.webmanifest` uses `—`. `index.js` is not affected, because it starts with a UTF-8 BOM, which wins over the HTTP header, and its strings are `\uXXXX` escapes or built with `UC()`. Test: a local server that deliberately sends `charset=windows-1252` shows every character correctly (title, text, arrows, ▼, HUD `·`/`★`, `Zurück`).
 
 ## Building and running
 

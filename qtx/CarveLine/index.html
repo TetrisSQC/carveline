@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>CARVE LINE — Snowboard Downhill</title>
+<title>CARVE LINE &#8212; Snowboard Downhill</title>
 <!-- PWA: installierbar + offline (alle Pfade relativ, damit jeder Versionsordner eine eigene App ist) -->
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0b111b">
@@ -114,15 +114,20 @@
   #tPad .cap{position:absolute;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:.22em;color:rgba(255,255,255,.45);text-transform:uppercase;font-weight:700}
   #tPad .cu{top:32px} #tPad .cd{bottom:32px}
   #tKnob{position:absolute;left:50%;top:50%;width:66px;height:66px;margin:-33px 0 0 -33px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.55);box-shadow:0 4px 18px rgba(0,0,0,.25)}
-  .tbtn{position:absolute;pointer-events:auto;touch-action:none;border-radius:50%;border:2px solid rgba(255,255,255,.25);background:rgba(10,16,28,.42);color:#fff;
-    font-family:var(--f);font-weight:800;letter-spacing:.12em;text-transform:uppercase;backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;transition:transform .08s,background .08s}
-  #tJump{right:calc(28px + env(safe-area-inset-right));bottom:calc(36px + env(safe-area-inset-bottom));width:116px;height:116px;font-size:14px;background:rgba(255,77,46,.5)}
-  #tJump.on{background:var(--accent);transform:scale(.94)}
-  #tGrab{right:calc(40px + env(safe-area-inset-right));bottom:calc(166px + env(safe-area-inset-bottom));width:74px;height:74px;font-size:12px;background:rgba(255,197,61,.45)}
-  #tGrab.on{background:var(--gold);color:#1b1300;transform:scale(.94)}
-  #tCam,#tPause{width:54px;height:54px;font-size:11px;right:calc(160px + env(safe-area-inset-right))}
-  #tCam{bottom:calc(40px + env(safe-area-inset-bottom))} #tPause{bottom:calc(106px + env(safe-area-inset-bottom));font-size:15px;letter-spacing:0}
-  .tbtn.tap{transform:scale(.9);background:rgba(25,195,255,.5)}
+  /* Touch-Knoepfe: dezent gewoelbt (Rand, leichtes Glanzlicht, innerer Ring, flacher Sockel); --c = Grundfarbe (RGB). Gedrueckt sinkt der Knopf ein und leuchtet leicht auf */
+  .tbtn{--c:34,46,66;position:absolute;pointer-events:auto;touch-action:none;border-radius:50%;color:#fff;border:1.5px solid rgba(255,255,255,.38);
+    font-family:var(--f);font-weight:800;letter-spacing:.12em;text-transform:uppercase;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 26%,rgba(255,255,255,.26),rgba(255,255,255,0) 50%),radial-gradient(circle at 50% 65%,rgba(var(--c),.66),rgba(var(--c),.5) 70%,rgba(0,0,0,.3) 100%);
+    box-shadow:0 3px 0 rgba(var(--c),.4),0 4px 0 rgba(0,0,0,.2),0 8px 16px rgba(0,0,0,.22),inset 0 -5px 9px rgba(0,0,0,.2),inset 0 1px 1px rgba(255,255,255,.4);
+    text-shadow:0 1px 0 rgba(0,0,0,.45);backdrop-filter:blur(4px);transition:transform .07s,box-shadow .07s,filter .07s}
+  .tbtn::before{content:'';position:absolute;inset:4px;border-radius:50%;border:1px solid rgba(255,255,255,.16);pointer-events:none}
+  .tbtn.on,.tbtn.tap{transform:translateY(3px) scale(.97);filter:brightness(1.15);
+    box-shadow:0 0 0 rgba(var(--c),.4),0 1px 0 rgba(0,0,0,.2),0 3px 8px rgba(0,0,0,.22),0 0 12px rgba(var(--c),.4),inset 0 -2px 5px rgba(0,0,0,.15),inset 0 3px 7px rgba(0,0,0,.25)}
+  #tJump{--c:255,77,46;right:calc(28px + env(safe-area-inset-right));bottom:calc(34px + env(safe-area-inset-bottom));width:100px;height:100px;font-size:14px}
+  #tGrab{--c:236,170,24;right:calc(38px + env(safe-area-inset-right));bottom:calc(148px + env(safe-area-inset-bottom));width:64px;height:64px;font-size:11px}
+  #tCam,#tPause{width:48px;height:48px;font-size:10px;right:calc(144px + env(safe-area-inset-right))}
+  #tCam{bottom:calc(38px + env(safe-area-inset-bottom))} #tPause{bottom:calc(96px + env(safe-area-inset-bottom));font-size:13px;letter-spacing:0}
+  .tbtn.tap{--c:25,150,215}
   body.touch #hCam{display:none}
   body.touch #hSpeed{bottom:auto;top:calc(16px + env(safe-area-inset-top));right:50%;transform:translateX(50%);min-width:0;padding:6px 16px 8px 12px}
   body.touch #hSpeed .big{font-size:40px}
@@ -138,11 +143,12 @@
     #hTime .big,#hScore .big{font-size:26px} #hDist{display:none} #hCombo{font-size:16px}
     body.touch #hSpeed{top:12px} body.touch #hSpeed .big{font-size:30px}
     #title{padding:0 6vw 5vh} #title .sub{font-size:14px} .row{margin-top:16px} button.btn{padding:12px 24px;font-size:15px}
-    #tPad{width:150px;height:150px} #tKnob{width:58px;height:58px;margin:-29px 0 0 -29px} #tJump{width:100px;height:100px}
-    #tCam,#tPause{right:calc(140px + env(safe-area-inset-right))} #tGrab{bottom:calc(146px + env(safe-area-inset-bottom));width:64px;height:64px}
+    #tPad{width:150px;height:150px} #tKnob{width:58px;height:58px;margin:-29px 0 0 -29px} #tJump{width:82px;height:82px;font-size:12px;bottom:calc(30px + env(safe-area-inset-bottom))}
+    #tCam,#tPause{right:calc(122px + env(safe-area-inset-right));width:42px;height:42px;font-size:9px} #tCam{bottom:calc(32px + env(safe-area-inset-bottom))} #tPause{bottom:calc(82px + env(safe-area-inset-bottom));font-size:12px}
+    #tGrab{bottom:calc(122px + env(safe-area-inset-bottom));right:calc(34px + env(safe-area-inset-right));width:54px;height:54px;font-size:10px}
     .card{padding:20px 22px;min-width:0} .card h2{font-size:30px} .opt{grid-template-columns:110px 1fr}
   }
-  /* ---------- Niedrige Bildschirme (Handy quer mit Browserleisten): Titel und Menü zweispaltig ---------- */
+  /* ---------- Niedrige Bildschirme (Handy quer mit Browserleisten): Titel und Menue zweispaltig ---------- */
   .seg button{background:rgba(10,16,28,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
   .seg button.sel{box-shadow:none}
   @media (max-height:520px){
@@ -163,7 +169,7 @@
     .opt{margin:5px 0;grid-template-columns:86px 1fr;gap:6px 10px} .opt label{font-size:10px;letter-spacing:.14em}
     .seg button{padding:6px;font-size:11px} .sw button{width:22px;height:22px} .card .row{margin-top:10px}
     #finish .card{padding:14px 20px;max-height:94vh} #finish .card h2{font-size:24px;margin:0 0 6px} .stats{font-size:14px;gap:3px 24px}
-    .card .row{position:sticky;bottom:-14px;margin-bottom:-14px;padding:8px 0 14px;background:#0e1522;z-index:2;box-shadow:0 -10px 14px #0e1522}   /* Knöpfe immer sichtbar, Inhalt scrollt */
+    .card .row{position:sticky;bottom:-14px;margin-bottom:-14px;padding:8px 0 14px;background:#0e1522;z-index:2;box-shadow:0 -10px 14px #0e1522}   /* Knoepfe immer sichtbar, Inhalt scrollt */
   }
   #err{position:fixed;left:0;right:0;top:0;padding:14px;background:#a01f12;color:#fff;font:14px monospace;display:none;white-space:pre-wrap;z-index:9;pointer-events:auto;cursor:pointer}
 </style>
@@ -182,9 +188,9 @@
 <div id="ui">
   <!-- Title -->
   <section id="title" class="screen on">
-    <div class="kicker">Alpine Downhill · Live</div>
+    <div class="kicker">Alpine Downhill &#183; Live</div>
     <h1>Carve<br><span>Line</span></h1>
-    <div class="sub">Schnell, sauber, ohne Kontakt ins Tal. Carve die Kante, nutze Kicker und überhole die Skifahrer so knapp du dich traust.</div>
+    <div class="sub">Schnell, sauber, ohne Kontakt ins Tal. Carve die Kante, nutze Kicker und &#252;berhole die Skifahrer so knapp du dich traust.</div>
     <div class="row">
       <button class="btn" id="bStart">Start</button>
       <button class="btn ghost" id="bTitleOpts">Optionen</button>
@@ -192,14 +198,14 @@
     </div>
     <div class="tsel"><span class="lbl">Strecke</span><div class="seg" id="optTrack"></div></div>
     <div class="keys">
-      <div><b>A</b><b>D</b> / <b>←</b><b>→</b></div><div>Kante / Lenken (Toeside rechts, Heelside links)</div>
+      <div><b>A</b><b>D</b> / <b>&#8592;</b><b>&#8594;</b></div><div>Kante / Lenken (Toeside rechts, Heelside links)</div>
       <div><b>W</b></div><div>Hocke (Tuck)</div>
       <div><b>S</b></div><div>Bremsen / Querstellen</div>
-      <div><b>Leertaste</b></div><div>Halten = Laden, Loslassen = Ollie · in der Luft lenken = Spin</div>
-      <div><b>E</b> / <b>Shift</b></div><div>Grab (in der Luft) · <b>W</b>/<b>S</b> in der Luft = Front-/Backflip</div>
-      <div><b>C</b> · <b>P</b>/<b>Esc</b></div><div>Kamera · Pause &nbsp;·&nbsp; Gamepad wird unterstützt</div>
+      <div><b>Leertaste</b></div><div>Halten = Laden, Loslassen = Ollie &#183; in der Luft lenken = Spin</div>
+      <div><b>E</b> / <b>Shift</b></div><div>Grab (in der Luft) &#183; <b>W</b>/<b>S</b> in der Luft = Front-/Backflip</div>
+      <div><b>C</b> &#183; <b>P</b>/<b>Esc</b></div><div>Kamera &#183; Pause &nbsp;&#183;&nbsp; Gamepad wird unterst&#252;tzt</div>
     </div>
-    <div class="thint"><b>Links:</b> Stick – seitlich lenken/kanten, hoch = Hocke, runter = Bremsen<br><b>Rechts:</b> Sprung halten zum Laden, loslassen = Ollie · in der Luft: lenken = Spin, Stick hoch/runter = Flip, Grab-Taste</div>
+    <div class="thint"><b>Links:</b> Stick &#8211; seitlich lenken/kanten, hoch = Hocke, runter = Bremsen<br><b>Rechts:</b> Sprung halten zum Laden, loslassen = Ollie &#183; in der Luft: lenken = Spin, Stick hoch/runter = Flip, Grab-Taste</div>
     <div class="best" id="tBest"></div>
   </section>
 
@@ -222,11 +228,11 @@
       <div><span class="big num" id="hV">0</span><span class="unit">KM/H</span></div>
       <div id="hGauge"><div id="hGaugeBar"></div></div>
     </div>
-    <div class="panel" id="hCam">CAM · VERFOLGER</div>
+    <div class="panel" id="hCam">CAM &#183; VERFOLGER</div>
     <div id="pops"></div>
     <div id="count"></div>
     <div id="slowmo"></div>
-    <div id="gateMark"><div class="ar">▼</div><div class="dt num"></div></div>
+    <div id="gateMark"><div class="ar">&#9660;</div><div class="dt num"></div></div>
     <div id="tags"></div>
     <div id="trick"><svg viewBox="-50 -50 100 100" width="96" height="96">
       <circle r="38" fill="rgba(10,16,28,.45)" stroke="rgba(255,255,255,.18)" stroke-width="7"/>
@@ -235,11 +241,11 @@
       <g id="trNow"><rect x="-4" y="-47" width="8" height="18" rx="3.5" fill="#fff"/><circle r="5" fill="#fff"/></g>
     </svg><div id="trTxt"></div><div id="trKey"></div></div>
     <div id="touch">
-      <div id="tPad"><span class="ar u">▲</span><span class="cap cu">Hocke</span><span class="ar d">▼</span><span class="cap cd">Bremse</span><span class="ar l">◀</span><span class="ar r">▶</span><div id="tKnob"></div></div>
+      <div id="tPad"><span class="ar u">&#9650;</span><span class="cap cu">Hocke</span><span class="ar d">&#9660;</span><span class="cap cd">Bremse</span><span class="ar l">&#9664;</span><span class="ar r">&#9654;</span><div id="tKnob"></div></div>
       <div class="tbtn" id="tJump">Sprung</div>
       <div class="tbtn" id="tGrab">Grab</div>
       <div class="tbtn" id="tCam">Cam</div>
-      <div class="tbtn" id="tPause">❚❚</div>
+      <div class="tbtn" id="tPause">&#10074;&#10074;</div>
     </div>
   </section>
 
@@ -265,12 +271,12 @@
       <div class="opt"><label>Hose</label><div class="sw" id="colPants"></div></div>
       <div class="opt"><label>Helm</label><div class="sw" id="colHelmet"></div></div>
       <div class="opt"><label>Board</label><div class="sw" id="colDeck"></div></div>
-      <div class="opt"><label>Lautstärke</label><input type="range" id="optVol" min="0" max="1" step="0.01" value="0.8"></div>
+      <div class="opt"><label>Lautst&#228;rke</label><input type="range" id="optVol" min="0" max="1" step="0.01" value="0.8"></div>
       <div class="opt"><label>Musik</label><input type="range" id="optMus" min="0" max="1" step="0.01" value="0.5"></div>
       <div class="row">
         <button class="btn" id="bResume">Weiter</button>
         <button class="btn ghost" id="bRestart">Neustart</button>
-        <button class="btn ghost" id="bMenu">Hauptmenü</button>
+        <button class="btn ghost" id="bMenu">Hauptmen&#252;</button>
       </div>
     </div>
   </section>
@@ -283,12 +289,12 @@
       <div class="stats num" id="fStats"></div>
       <div class="row">
         <button class="btn" id="bAgain">Nochmal</button>
-        <button class="btn ghost" id="bFinMenu">Hauptmenü</button>
+        <button class="btn ghost" id="bFinMenu">Hauptmen&#252;</button>
       </div>
     </div>
   </section>
   <div id="toast"></div>
-  <div id="rotate"><div>⟳</div>Bitte Gerät quer halten</div>
+  <div id="rotate"><div>&#10227;</div>Bitte Ger&#228;t quer halten</div>
 </div>
 <!-- Spiel-Code: Quartex Pascal, kompiliert nach index.js (definiert main()) -->
 <script src="index.js"></script>

@@ -146,8 +146,8 @@ begin
   dist := ClampF(g.posZ - 4, 0, CONFIG.courseLength);
   E('Prog').style.width := ToFixed(dist / CONFIG.courseLength * 100, 1) + '%';
   SetText('Dist', IntToStr(Round(dist)) + ' m  /  ' + NumStr(CONFIG.courseLength) + ' m');
-  SetText('Extra', 'Tore ' + IntToStr(g.gatesPassed) + '/' + IntToStr(g.gatesTotal) + '  '#$B7'  '#$2605' ' + IntToStr(g.starsGot) + '/' + IntToStr(g.starsTotal) +
-    (if g.rivalText <> '' then '  '#$B7'  ' + g.rivalText else ''));
+  SetText('Extra', 'Tore ' + IntToStr(g.gatesPassed) + '/' + IntToStr(g.gatesTotal) + '  ' + UC($B7) + '  '#$2605' ' + IntToStr(g.starsGot) + '/' + IntToStr(g.starsTotal) +
+    (if g.rivalText <> '' then '  ' + UC($B7) + '  ' + g.rivalText else ''));
 end;
 
 { TScore }
@@ -216,9 +216,9 @@ begin
     if fl > 1 then prefix := if Min(fl, 3) = 2 then 'Double ' else 'Triple ';
     parts.Add(prefix + (if tr.flipDir > 0 then 'Frontflip' else 'Backflip')); flips += fl;
   end;
-  if spins <> 0 then parts.Add(IntToStr(spins * 360) + #$B0);
+  if spins <> 0 then parts.Add(IntToStr(spins * 360) + UC($B0));
   if grab <> 0 then begin parts.Add('Indy'); Inc(grabs); end;
-  hud.Pop(if parts.Length > 0 then parts.Join(' '#$B7' ') else 'Air ' + ToFixed(t, 1) + 's', '+' + IntToStr(v));
+  hud.Pop(if parts.Length > 0 then parts.Join(' ' + UC($B7) + ' ') else 'Air ' + ToFixed(t, 1) + 's', '+' + IntToStr(v));
 end;
 
 procedure TScore.OnCrash;
